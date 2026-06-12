@@ -1,0 +1,239 @@
+{
+  "best_params": {
+    "model__class_weight": {
+      "0": 1,
+      "1": 5
+    },
+    "model__max_depth": 16,
+    "model__max_features": 0.5,
+    "model__max_samples": 0.7,
+    "model__min_samples_leaf": 4,
+    "model__min_samples_split": 4,
+    "model__n_estimators": 476
+  },
+  "search_best_f2": 0.7743504894230449,
+  "fixed_cv": {
+    "test_f2": {
+      "mean": 0.7743504894230449,
+      "std": 0.03740979778885809
+    },
+    "train_f2": {
+      "mean": 0.9400350460084738,
+      "std": 0.005138361889949343
+    },
+    "test_recall": {
+      "mean": 0.7784332520041827,
+      "std": 0.045208583524063546
+    },
+    "test_precision": {
+      "mean": 0.7604720414175924,
+      "std": 0.01818998541080089
+    },
+    "test_f1": {
+      "mean": 0.7686888712661908,
+      "std": 0.026708578766752013
+    },
+    "test_pr_auc": {
+      "mean": 0.855368915703487,
+      "std": 0.024518204883179906
+    },
+    "test_accuracy": {
+      "mean": 0.9214021457639661,
+      "std": 0.007420520482176069
+    }
+  },
+  "best_threshold": {
+    "threshold": 0.31,
+    "f2": 0.8375512171607616,
+    "recall": 0.91688654353562,
+    "precision": 0.622202327663384,
+    "f1": 0.7413333333333333,
+    "pr_auc": 0.855635687191712,
+    "contacts": 1117.0,
+    "tp": 695.0,
+    "fp": 422.0,
+    "fn": 63.0,
+    "tn": 3324.0
+  },
+  "threshold_050": {
+    "threshold": 0.5,
+    "f2": 0.7746848739495799,
+    "recall": 0.7783641160949868,
+    "precision": 0.7603092783505154,
+    "f1": 0.7692307692307693,
+    "pr_auc": 0.855635687191712,
+    "contacts": 776.0,
+    "tp": 590.0,
+    "fp": 186.0,
+    "fn": 168.0,
+    "tn": 3560.0
+  },
+  "top_search": [
+    {
+      "rank_test_score": 1,
+      "mean_test_score": 0.7743504894230449,
+      "std_test_score": 0.03740979778885809,
+      "mean_train_score": 0.9400350460084738,
+      "params": {
+        "model__class_weight": {
+          "0": 1,
+          "1": 5
+        },
+        "model__max_depth": 16,
+        "model__max_features": 0.5,
+        "model__max_samples": 0.7,
+        "model__min_samples_leaf": 4,
+        "model__min_samples_split": 4,
+        "model__n_estimators": 476
+      }
+    },
+    {
+      "rank_test_score": 2,
+      "mean_test_score": 0.7697394625266799,
+      "std_test_score": 0.03649906340005787,
+      "mean_train_score": 0.8544065299095973,
+      "params": {
+        "model__class_weight": {
+          "0": 1,
+          "1": 5
+        },
+        "model__max_depth": 7,
+        "model__max_features": 0.75,
+        "model__max_samples": null,
+        "model__min_samples_leaf": 2,
+        "model__min_samples_split": 15,
+        "model__n_estimators": 563
+      }
+    },
+    {
+      "rank_test_score": 3,
+      "mean_test_score": 0.7645418482180524,
+      "std_test_score": 0.02344291357267644,
+      "mean_train_score": 0.8924336538410234,
+      "params": {
+        "model__class_weight": "balanced_subsample",
+        "model__max_depth": 16,
+        "model__max_features": "log2",
+        "model__max_samples": 0.85,
+        "model__min_samples_leaf": 8,
+        "model__min_samples_split": 15,
+        "model__n_estimators": 513
+      }
+    },
+    {
+      "rank_test_score": 4,
+      "mean_test_score": 0.7643147315708428,
+      "std_test_score": 0.03833491457058241,
+      "mean_train_score": 0.8396646170308589,
+      "params": {
+        "model__class_weight": {
+          "0": 1,
+          "1": 5
+        },
+        "model__max_depth": 16,
+        "model__max_features": 0.75,
+        "model__max_samples": null,
+        "model__min_samples_leaf": 18,
+        "model__min_samples_split": 30,
+        "model__n_estimators": 308
+      }
+    },
+    {
+      "rank_test_score": 5,
+      "mean_test_score": 0.7631246621505302,
+      "std_test_score": 0.03463849690346711,
+      "mean_train_score": 0.8775895841479423,
+      "params": {
+        "model__class_weight": "balanced_subsample",
+        "model__max_depth": 12,
+        "model__max_features": 0.75,
+        "model__max_samples": 0.85,
+        "model__min_samples_leaf": 10,
+        "model__min_samples_split": 23,
+        "model__n_estimators": 362
+      }
+    },
+    {
+      "rank_test_score": 6,
+      "mean_test_score": 0.7627551103296563,
+      "std_test_score": 0.03966140008159683,
+      "mean_train_score": 0.836509789569536,
+      "params": {
+        "model__class_weight": "balanced_subsample",
+        "model__max_depth": 12,
+        "model__max_features": 0.75,
+        "model__max_samples": 0.85,
+        "model__min_samples_leaf": 16,
+        "model__min_samples_split": 22,
+        "model__n_estimators": 613
+      }
+    },
+    {
+      "rank_test_score": 7,
+      "mean_test_score": 0.7578649686631613,
+      "std_test_score": 0.033212124815410346,
+      "mean_train_score": 0.8432061776218353,
+      "params": {
+        "model__class_weight": "balanced_subsample",
+        "model__max_depth": 9,
+        "model__max_features": 0.5,
+        "model__max_samples": 0.85,
+        "model__min_samples_leaf": 12,
+        "model__min_samples_split": 27,
+        "model__n_estimators": 622
+      }
+    },
+    {
+      "rank_test_score": 8,
+      "mean_test_score": 0.7576879960445412,
+      "std_test_score": 0.039207128916269825,
+      "mean_train_score": 0.82137195827592,
+      "params": {
+        "model__class_weight": "balanced_subsample",
+        "model__max_depth": 7,
+        "model__max_features": 0.75,
+        "model__max_samples": 0.7,
+        "model__min_samples_leaf": 11,
+        "model__min_samples_split": 7,
+        "model__n_estimators": 519
+      }
+    },
+    {
+      "rank_test_score": 9,
+      "mean_test_score": 0.756926212883851,
+      "std_test_score": 0.022957919343271904,
+      "mean_train_score": 0.888509274297307,
+      "params": {
+        "model__class_weight": {
+          "0": 1,
+          "1": 4
+        },
+        "model__max_depth": 12,
+        "model__max_features": "log2",
+        "model__max_samples": null,
+        "model__min_samples_leaf": 8,
+        "model__min_samples_split": 16,
+        "model__n_estimators": 392
+      }
+    },
+    {
+      "rank_test_score": 10,
+      "mean_test_score": 0.7554770417360241,
+      "std_test_score": 0.03763380025386257,
+      "mean_train_score": 0.8731359769381196,
+      "params": {
+        "model__class_weight": {
+          "0": 1,
+          "1": 4
+        },
+        "model__max_depth": null,
+        "model__max_features": 0.5,
+        "model__max_samples": null,
+        "model__min_samples_leaf": 6,
+        "model__min_samples_split": 29,
+        "model__n_estimators": 504
+      }
+    }
+  ],
+  "test_rows_reserved": 1126
+}

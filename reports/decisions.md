@@ -2,7 +2,7 @@
 
 **Proyecto:** Churn de clientes de e-commerce  
 **Grupo:** Grupo 1  
-**Ultima actualizacion:** 11/06/2026  
+**Ultima actualizacion:** 12/06/2026
 **Objetivo del documento:** registrar las decisiones importantes del proyecto, por que se tomaron, que alternativas se descartaron y que consecuencias tienen para el negocio.
 
 ---
@@ -279,11 +279,11 @@ Estados utilizados:
 2. **Por que:** el modelo simple establece un punto de comparacion y facilita la explicacion; el modelo potente permite evaluar si la complejidad agrega valor comercial real.
 3. **Resultados actuales:**
    - Dummy: 83,2% de accuracy, pero 0% de recall.
-   - Regresion logistica: F2 de 0,704, 81,4% de recall, 45,8% de precision y PR-AUC de 0,709.
-   - Arbol de decision: F2 de 0,718, 80,5% de recall, 50,3% de precision y PR-AUC de 0,647.
+   - Regresion logistica con feature engineering: F2 de 0,724, 83,0% de recall, 48,1% de precision y PR-AUC de 0,712.
+   - Arbol de decision con feature engineering: F2 de 0,730, 83,8% de recall, 48,4% de precision y PR-AUC de 0,641.
 4. **Alternativas pendientes:** Random Forest y escenarios sin `Complain` ni `DaySinceLastOrder`.
 5. **Criterio de decision pendiente:** priorizar el mayor F2 promedio; desempatar con PR-AUC, precision, estabilidad, explicabilidad y utilidad operativa. No se elegira automaticamente el de mayor accuracy.
-6. **Consecuencias:** la logistica detecta siete churns mas en las predicciones fuera de fold, pero requiere contactar 135 clientes adicionales. El arbol reduce falsas alertas y sigue detectando aproximadamente ocho de cada diez churns.
+6. **Consecuencias:** con el umbral estandar, el arbol detecta seis churns mas que la logistica, genera una falsa alerta menos y requiere cinco contactos adicionales. La diferencia operativa entre ambos se redujo luego del feature engineering.
 7. **Implicancia de negocio:** todavia no hay ganador. La eleccion depende de capacidad de contacto, costo de una alerta y valor de perder un cliente.
 
 ---
@@ -306,14 +306,14 @@ Estados utilizados:
 
 **Estado:** Provisoria; analisis fuera de fold completado
 
-1. **Que decidimos:** usar `0,51` como umbral F2 provisorio para el arbol. Mantener `0,60` como alternativa operativa si se necesita reducir contactos.
+1. **Que decidimos:** usar `0,52` como umbral F2 provisorio para el arbol. Mantener `0,60` como alternativa operativa si se necesita reducir contactos.
 2. **Por que:** el modelo entregara probabilidades, pero el negocio debe decidir cuantos clientes puede contactar y cuanto puede invertir.
 3. **Alternativas evaluadas:**
-   - Logistica en `0,52`: mejora precision a 47,3%, evita 52 contactos y pierde cuatro churns detectados.
-   - Arbol en `0,60`: mejora precision a 51,3%, evita 39 contactos y pierde siete churns detectados.
+   - Logistica en `0,47`: sube recall a 84,7% y detecta trece churns adicionales, pero exige 75 contactos mas y reduce precision a 46,4%.
+   - Arbol en `0,60`: mejora precision a 51,9%, evita 157 contactos y pierde 35 churns detectados.
    - Mantener `0,50`: practicamente equivalente al maximo F2 del arbol.
-4. **Consecuencias:** el ajuste de umbral mejora precision, pero no elimina el trade-off. Cada reduccion de falsas alertas puede dejar clientes con churn sin detectar.
-5. **Implicancia de negocio:** `0,51` maximiza el criterio F2 actual. `0,60` puede ser preferible si el equipo no puede contactar 1.214 clientes. La decision final requiere capacidad, costo de contacto, margen y perdida esperada.
+4. **Consecuencias:** el ajuste de umbral no elimina el trade-off. Bajar el umbral de la logistica mejora deteccion con mayor costo operativo; subir el del arbol reduce contactos, pero deja mas churn sin detectar.
+5. **Implicancia de negocio:** `0,52` maximiza el criterio F2 actual del arbol. `0,60` puede ser preferible si el equipo no puede contactar cerca de 1.300 clientes. La decision final requiere capacidad, costo de contacto, margen y perdida esperada.
 
 ---
 
@@ -331,18 +331,35 @@ Estados utilizados:
 
 ---
 
+## Decision 21 - Incorporar feature engineering basado en intensidad de relacion
+
+**Estado:** Cerrada para la comparacion actual
+
+1. **Que decidimos:** incorporar `OrdersPerTenure`, `CashbackPerOrder` y `CouponsPerOrder` a la regresion logistica y al arbol. Las tres variables se calculan con reglas deterministicas, sin usar `Churn`, y se generan por separado sobre train y test.
+2. **Por que:** los valores absolutos no siempre describen el mismo comportamiento. Dos clientes con tres pedidos representan situaciones distintas si uno lleva dos meses y otro dos anos; de forma similar, cashback y cupones deben leerse en relacion con la cantidad de pedidos.
+3. **Justificacion de negocio:**
+   - `OrdersPerTenure` aproxima la frecuencia de compra durante la relacion comercial.
+   - `CashbackPerOrder` representa la intensidad de beneficios recibidos por transaccion.
+   - `CouponsPerOrder` aproxima cuanto depende el cliente de incentivos para comprar.
+4. **Implementacion en modelos:** se creo una unica funcion reproducible para generar variables y otra para construir los pipelines. Las variables derivadas numericas pasan por la misma imputacion KNN y, en la logistica, por el mismo escalado que el resto. La comparacion usa los mismos cinco folds y mantiene test cerrado.
+5. **Evidencia:** F2 subio de 0,704 a 0,724 en la logistica y de 0,718 a 0,730 en el arbol. `OrdersPerTenure` quedo tercera en importancia del arbol, con 8,6% de la reduccion relativa de impureza. `CashbackPerOrder` y `CouponsPerOrder` no mostraron importancia individual relevante en ese arbol.
+6. **Trade-off observado:** en el arbol, recall subio de 80,5% a 83,8%, pero precision bajo de 50,3% a 48,4% y PR-AUC de 0,647 a 0,641. La mejora de F2 responde a la prioridad acordada de detectar mas churn, no a una mejora uniforme de todas las metricas.
+7. **Alternativas descartadas:** no se conservaron banderas de cliente nuevo ni interacciones adicionales porque no mejoraron consistentemente la comparacion y agregaban reglas arbitrarias. Tampoco se generaron muchas combinaciones automaticas, para preservar explicabilidad y reducir riesgo de sobreajuste.
+8. **Implicancia de negocio:** la frecuencia relativa de compra aporta una senal accionable para distinguir clientes activos de clientes con vinculo debil. Las razones de cashback y cupones se mantienen por su logica comercial y por la mejora conjunta validada, pero no deben presentarse como causas individuales del churn.
+
+---
+
 ## Pendientes obligatorios antes de cerrar la entrega de modelado
 
 1. Confirmar la temporalidad de `Complain` y `DaySinceLastOrder`.
-2. Integrar normalizacion, imputacion y encoding en pipelines ajustados solo con train.
-3. Entrenar y comparar Random Forest como modelo potente.
-4. Comparar el modelo potente con los tres modelos ya evaluados mediante la misma validacion cruzada estratificada.
-5. Definir el costo aproximado de un falso positivo y un falso negativo.
-6. Estimar capacidad semanal o mensual de contacto del equipo comercial.
-7. Elegir modelo y umbral con metricas y criterio de negocio.
-8. Evaluar test una sola vez y registrar el resultado final.
-9. Traducir el modelo ganador a segmentos, acciones y limitaciones.
-10. Actualizar este documento con la decision del modelo ganador y las alternativas descartadas.
+2. Entrenar y comparar Random Forest como modelo potente.
+3. Comparar el modelo potente con los tres modelos ya evaluados mediante la misma validacion cruzada estratificada.
+4. Definir el costo aproximado de un falso positivo y un falso negativo.
+5. Estimar capacidad semanal o mensual de contacto del equipo comercial.
+6. Elegir modelo y umbral con metricas y criterio de negocio.
+7. Evaluar test una sola vez y registrar el resultado final.
+8. Traducir el modelo ganador a segmentos, acciones y limitaciones.
+9. Actualizar este documento con la decision del modelo ganador y las alternativas descartadas.
 
 ---
 
@@ -357,4 +374,5 @@ Estados utilizados:
 - `Complain` es una senal comercial fuerte, pero no puede aprobarse para modelado sin verificar temporalidad.
 - `DaySinceLastOrder` y `SatisfactionScore` contradicen lecturas intuitivas y requieren validacion adicional.
 - Cashback y segmentos comerciales muestran asociaciones utiles, pero todavia no demuestran causalidad.
+- El feature engineering incorpora frecuencia de compra e intensidad de incentivos; mejora F2 en ambos modelos sin consultar test.
 - La eleccion de modelo y umbral sigue pendiente y debera combinar desempeno, explicabilidad, presupuesto y capacidad de contacto.

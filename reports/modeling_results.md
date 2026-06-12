@@ -15,8 +15,8 @@ La metrica principal es **F2**, un F-beta con `beta=2`. Combina recall y precisi
 | Modelo | F2 | Recall | Precision | F1 | PR-AUC | Accuracy |
 |---|---:|---:|---:|---:|---:|---:|
 | Dummy - clase mayoritaria | 0,000 | 0,000 | 0,000 | 0,000 | 0,168 | 0,832 |
-| Regresion logistica balanceada | 0,704 | 0,814 | 0,458 | 0,585 | 0,709 | 0,806 |
-| Arbol de decision balanceado | **0,718** | 0,805 | 0,503 | 0,619 | 0,647 | 0,833 |
+| Regresion logistica balanceada | 0,724 | 0,830 | 0,481 | 0,609 | **0,712** | 0,821 |
+| Arbol de decision balanceado | **0,730** | **0,838** | **0,484** | **0,613** | 0,641 | 0,822 |
 
 ## Traduccion a clientes
 
@@ -25,16 +25,27 @@ Las predicciones fuera de fold permiten comparar el costo operativo sin abrir te
 | Modelo | Churn detectado | Churn no detectado | Falsas alertas | Clientes contactados |
 |---|---:|---:|---:|---:|
 | Dummy | 0 | 758 | 0 | 0 |
-| Regresion logistica | 617 | 141 | 732 | 1.349 |
-| Arbol de decision | 610 | 148 | 604 | 1.214 |
+| Regresion logistica | 629 | 129 | 679 | 1.308 |
+| Arbol de decision | 635 | 123 | 678 | 1.313 |
 
 ## Lectura de negocio
 
 - El Dummy demuestra que 83% de accuracy puede ser inutil: no detecta ningun churn.
-- El arbol obtiene el mejor F2, 0,718, porque conserva recall alto y mejora precision.
-- La logistica detecta aproximadamente 8 de cada 10 churns y obtiene la mejor PR-AUC, por lo que ordena mejor el riesgo.
-- El arbol detecta siete churns menos, pero evita 128 falsas alertas y requiere contactar 135 clientes menos.
-- El arbol tiene una brecha F2 train-CV cercana a 3 puntos porcentuales, sin una senal fuerte de sobreajuste con la configuracion actual.
+- El arbol obtiene el mejor F2, 0,730, y detecta 83,8% de los churns.
+- La logistica tambien mejora y obtiene la mejor PR-AUC, por lo que ordena mejor el riesgo.
+- Con umbral 0,50, el arbol detecta seis churns mas que la logistica y genera una falsa alerta menos.
+- El arbol tiene una brecha F2 train-CV de 2,3 puntos porcentuales, sin una senal fuerte de sobreajuste con la configuracion actual.
+
+## Impacto del feature engineering
+
+Se agregaron `OrdersPerTenure`, `CashbackPerOrder` y `CouponsPerOrder`.
+
+| Modelo | F2 sin FE | F2 con FE | Delta F2 | Delta recall | Delta precision | Delta PR-AUC |
+|---|---:|---:|---:|---:|---:|---:|
+| Regresion logistica | 0,704 | 0,724 | +0,021 | +0,016 | +0,023 | +0,003 |
+| Arbol de decision | 0,718 | 0,730 | +0,012 | +0,033 | -0,019 | -0,007 |
+
+`OrdersPerTenure` quedo tercera en importancia del arbol. El feature engineering mejora el criterio F2 en ambos modelos, aunque en el arbol intercambia precision y capacidad de ordenamiento por mayor deteccion.
 
 ## Decision provisoria
 
@@ -44,15 +55,15 @@ El **arbol queda como candidato provisorio** por obtener el mayor F2. No se decl
 
 | Modelo | Umbral | F2 | Recall | Precision | Contactos | Churn detectado |
 |---|---:|---:|---:|---:|---:|---:|
-| Logistica estandar | 0,50 | 0,704 | 0,814 | 0,457 | 1.349 | 617 |
-| Logistica ajustada | **0,52** | **0,708** | 0,809 | **0,473** | **1.297** | 613 |
-| Arbol estandar | 0,50 | 0,718 | 0,805 | 0,502 | 1.214 | 610 |
-| Arbol maximo F2 | 0,51 | 0,718 | 0,805 | 0,502 | 1.214 | 610 |
-| Arbol alternativa operativa | 0,60 | 0,717 | 0,796 | **0,513** | **1.175** | 603 |
+| Logistica estandar | 0,50 | 0,725 | 0,830 | 0,481 | 1.308 | 629 |
+| Logistica maximo F2 | **0,47** | **0,727** | **0,847** | 0,464 | 1.383 | **642** |
+| Arbol estandar | 0,50 | 0,731 | 0,838 | 0,484 | 1.313 | 635 |
+| Arbol maximo F2 | **0,52** | **0,731** | 0,838 | 0,484 | 1.313 | 635 |
+| Arbol alternativa operativa | 0,60 | 0,716 | 0,792 | **0,519** | **1.156** | 600 |
 
-El ajuste mejora claramente la logistica: evita 52 contactos y sube 1,6 puntos porcentuales de precision, perdiendo cuatro churns detectados. En el arbol, el umbral estandar ya esta cerca del maximo F2. Subirlo a 0,60 reduce 39 contactos y mejora 1,1 puntos de precision, pero pierde siete churns adicionales.
+El ajuste de la logistica a 0,47 detecta trece churns adicionales, pero requiere 75 contactos mas y reduce precision. En el arbol, el umbral estandar ya esta cerca del maximo F2. Subirlo a 0,60 reduce 157 contactos y mejora 3,5 puntos de precision, pero pierde 35 churns adicionales.
 
-**Umbral provisorio:** `0,51` para el arbol si se prioriza F2. El umbral `0,60` queda como alternativa si la capacidad comercial exige menos contactos.
+**Umbral provisorio:** `0,52` para el arbol si se prioriza F2. El umbral `0,60` queda como alternativa si la capacidad comercial exige menos contactos.
 
 ## Siguientes pasos
 
