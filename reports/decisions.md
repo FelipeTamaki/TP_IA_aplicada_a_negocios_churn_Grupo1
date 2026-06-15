@@ -2,7 +2,7 @@
 
 **Proyecto:** Churn de clientes de e-commerce  
 **Grupo:** Grupo 1  
-**Ultima actualizacion:** 12/06/2026
+**Ultima actualizacion:** 15/06/2026
 **Objetivo del documento:** registrar las decisiones importantes del proyecto, por que se tomaron, que alternativas se descartaron y que consecuencias tienen para el negocio.
 
 ---
@@ -125,7 +125,7 @@ Estados utilizados:
 
 **Estado:** Cerrada
 
-1. **Que decidimos:** realizar un split 80/20 antes de imputar, escalar o codificar variables.
+1. **Que decidimos:** separar aproximadamente 80/20 antes de imputar, escalar o codificar variables, manteniendo juntos los perfiles con features identicas.
 2. **Por que:** test debe representar clientes que el proceso de entrenamiento nunca vio. Si se calculan transformaciones usando toda la base, se filtra informacion del examen final hacia el entrenamiento.
 3. **Alternativas descartadas:**
    - Limpiar e imputar toda la base antes de dividirla.
@@ -135,24 +135,25 @@ Estados utilizados:
 
 ---
 
-## Decision 8 - Utilizar un split estratificado y reproducible
+## Decision 8 - Utilizar un split estratificado, agrupado y reproducible
 
 **Estado:** Cerrada
 
-1. **Que decidimos:** usar `train_test_split` con `test_size=0.20`, `stratify=y` y `random_state=42`.
-2. **Por que:** el churn es minoritario. La estratificacion evita que train y test tengan proporciones muy distintas por azar, y la semilla fija permite repetir exactamente el experimento.
+1. **Que decidimos:** usar `StratifiedGroupKFold` con cinco particiones y `random_state=42`, reservando una particion como test. El grupo se define mediante el conjunto completo de variables explicativas, sin `CustomerID` ni `Churn`.
+2. **Por que:** el churn es minoritario y se detectaron 556 filas con features exactamente duplicadas. La estratificacion conserva la proporcion de churn y el agrupamiento evita que copias del mismo perfil aparezcan en train y test.
 3. **Alternativas descartadas:**
    - Split aleatorio sin estratificacion.
+   - Split estratificado tradicional que permita perfiles identicos en ambos conjuntos.
    - Cambiar la semilla en cada ejecucion.
    - Usar el conjunto de test para ajustar decisiones durante el desarrollo.
-4. **Consecuencias:** train contiene 4.504 clientes y test 1.126. Las tasas de churn son 16,83% y 16,87%, respectivamente.
-5. **Implicancia de negocio:** la comparacion de modelos se realiza sobre una distribucion consistente con la realidad observada y no sobre una division accidentalmente favorable.
+4. **Consecuencias:** train contiene 4.514 clientes y test 1.116. No hay perfiles identicos compartidos entre ambos conjuntos. Los resultados anteriores con split aleatorio se consideran intermedios.
+5. **Implicancia de negocio:** se evita prometer un desempeno inflado por haber evaluado clientes equivalentes a los usados para entrenar.
 
 ---
 
 ## Decision 9 - Normalizar categorias semanticamente equivalentes
 
-**Estado:** Cerrada para el EDA; pendiente de integrar al pipeline
+**Estado:** Cerrada e integrada al pipeline
 
 1. **Que decidimos:** tratar como equivalentes las etiquetas que parecen representar la misma categoria:
    - `Phone` y `Mobile Phone`.
@@ -170,7 +171,7 @@ Estados utilizados:
 
 ## Decision 10 - Tratar los outliers con criterio y no eliminarlos automaticamente
 
-**Estado:** Cerrada para el EDA; pendiente de definir para el modelo
+**Estado:** Cerrada; los outliers se conservan en modelado
 
 1. **Que decidimos:** conservar los valores altos que pueden corresponder a clientes reales y excluir solo siete observaciones puntuales de ciertos graficos del EDA: dos extremos de `WarehouseToHome`, cuatro de `Tenure` y el maximo de `DaySinceLastOrder`.
 2. **Por que:** un cliente con muchas ordenes, cupones o cashback puede ser comercialmente relevante y no un error.
@@ -200,7 +201,7 @@ Estados utilizados:
 
 ## Decision 12 - Usar `Complain` solo si su temporalidad es valida
 
-**Estado:** Pendiente y critica antes de cerrar el modelo
+**Estado:** Cerrada de forma conservadora; variable excluida del modelo final
 
 1. **Que decidimos:** mantener `Complain` como variable candidata, pero no aprobar su uso definitivo hasta confirmar que el reclamo estaba disponible antes del momento de prediccion.
 2. **Por que:** los clientes con reclamo presentan 31,7% de churn frente a 10,9% entre quienes no reclamaron. Es una senal fuerte y accionable, pero podria estar mirando el futuro.
@@ -216,7 +217,7 @@ Estados utilizados:
 
 ## Decision 13 - No interpretar `DaySinceLastOrder` de forma intuitiva
 
-**Estado:** Pendiente y critica antes de cerrar el modelo
+**Estado:** Cerrada de forma conservadora; variable excluida del modelo final
 
 1. **Que decidimos:** no comunicar que "mas dias sin comprar implican mayor churn" porque los datos observados muestran lo contrario.
 2. **Por que:** los clientes con churn tienen menos dias desde la ultima orden en promedio: 3,37 dias frente a 4,86 dias.
@@ -273,60 +274,60 @@ Estados utilizados:
 
 ## Decision 17 - Comparar modelos simples antes del modelo potente
 
-**Estado:** Provisoria; primera comparacion completada
+**Estado:** Cerrada
 
-1. **Que decidimos:** comparar primero Dummy, regresion logistica balanceada y arbol de decision balanceado mediante validacion cruzada estratificada. Random Forest queda como siguiente candidato potente.
-2. **Por que:** el modelo simple establece un punto de comparacion y facilita la explicacion; el modelo potente permite evaluar si la complejidad agrega valor comercial real.
-3. **Resultados actuales:**
-   - Dummy: 83,2% de accuracy, pero 0% de recall.
-   - Regresion logistica con feature engineering: F2 de 0,724, 83,0% de recall, 48,1% de precision y PR-AUC de 0,712.
-   - Arbol de decision con feature engineering: F2 de 0,730, 83,8% de recall, 48,4% de precision y PR-AUC de 0,641.
-4. **Alternativas pendientes:** Random Forest y escenarios sin `Complain` ni `DaySinceLastOrder`.
-5. **Criterio de decision pendiente:** priorizar el mayor F2 promedio; desempatar con PR-AUC, precision, estabilidad, explicabilidad y utilidad operativa. No se elegira automaticamente el de mayor accuracy.
-6. **Consecuencias:** con el umbral estandar, el arbol detecta seis churns mas que la logistica, genera una falsa alerta menos y requiere cinco contactos adicionales. La diferencia operativa entre ambos se redujo luego del feature engineering.
-7. **Implicancia de negocio:** todavia no hay ganador. La eleccion depende de capacidad de contacto, costo de una alerta y valor de perder un cliente.
+1. **Que decidimos:** comparar Dummy, regresion logistica, arbol de decision y Random Forest con validacion cruzada estratificada por grupos.
+2. **Por que:** los modelos simples establecen un piso interpretable; Random Forest permite verificar si mayor complejidad agrega valor comercial.
+3. **Resultados conservadores con umbral 0,50:**
+   - Dummy: F2 y recall iguales a 0.
+   - Regresion logistica: F2 0,689; recall 80,2%; precision 44,1%.
+   - Arbol de decision: F2 0,658; recall 77,5%; precision 41,1%.
+   - Random Forest: F2 0,674; recall 67,0%; precision 68,9%; mejor PR-AUC y ROC-AUC.
+4. **Decision:** seleccionar regresion logistica por obtener el mayor F2 y recall bajo la prioridad acordada.
+5. **Alternativa descartada:** Random Forest genera menos alertas y ordena mejor el riesgo, pero deja sin detectar mas churns con el umbral estandar.
+6. **Consecuencias:** el modelo final es mas simple y explicable, aunque produce mas falsas alertas.
+7. **Implicancia de negocio:** se prioriza detectar clientes en riesgo por encima de minimizar contactos. La capacidad comercial sigue determinando si conviene usar el umbral F2 o una alternativa mas restrictiva.
 
 ---
 
 ## Decision 18 - Reservar test para una unica evaluacion final
 
-**Estado:** Cerrada como regla metodologica
+**Estado:** Cerrada y ejecutada
 
-1. **Que decidimos:** comparar alternativas y ajustar hiperparametros mediante validacion dentro de train. Test se utilizara una sola vez, cuando el proceso este cerrado.
+1. **Que decidimos:** comparar alternativas y ajustar el umbral dentro de train. Test se utilizo despues de congelar variables, modelo y umbral.
 2. **Por que:** consultar repetidamente test termina adaptando decisiones al conjunto que deberia simular datos nuevos.
 3. **Alternativas descartadas:**
    - Elegir el modelo mirando repetidamente su resultado en test.
    - Ajustar el umbral hasta maximizar la metrica de test.
-4. **Consecuencias:** los resultados intermedios deben provenir de validacion cruzada estratificada en train.
-5. **Implicancia de negocio:** la estimacion final sera mas creible y reducira el riesgo de prometer un desempeno que no se sostenga al implementar el sistema.
+4. **Consecuencias:** la evaluacion final queda congelada en `reports/final_modeling_results.json` y no debe repetirse para ajustar decisiones.
+5. **Implicancia de negocio:** el resultado final es una estimacion mas creible y reduce el riesgo de prometer un desempeno adaptado al examen.
 
 ---
 
 ## Decision 19 - Elegir el umbral segun capacidad y rentabilidad
 
-**Estado:** Provisoria; analisis fuera de fold completado
+**Estado:** Cerrada tecnicamente; pendiente de validacion comercial
 
-1. **Que decidimos:** usar `0,52` como umbral F2 provisorio para el arbol. Mantener `0,60` como alternativa operativa si se necesita reducir contactos.
-2. **Por que:** el modelo entregara probabilidades, pero el negocio debe decidir cuantos clientes puede contactar y cuanto puede invertir.
+1. **Que decidimos:** usar `0,41` como umbral final F2 para la regresion logistica. Mantener `0,50` como alternativa operativa.
+2. **Por que:** `0,41` maximiza F2 con probabilidades fuera de fold y refleja la prioridad de detectar churn.
 3. **Alternativas evaluadas:**
-   - Logistica en `0,47`: sube recall a 84,7% y detecta trece churns adicionales, pero exige 75 contactos mas y reduce precision a 46,4%.
-   - Arbol en `0,60`: mejora precision a 51,9%, evita 157 contactos y pierde 35 churns detectados.
-   - Mantener `0,50`: practicamente equivalente al maximo F2 del arbol.
-4. **Consecuencias:** el ajuste de umbral no elimina el trade-off. Bajar el umbral de la logistica mejora deteccion con mayor costo operativo; subir el del arbol reduce contactos, pero deja mas churn sin detectar.
-5. **Implicancia de negocio:** `0,52` maximiza el criterio F2 actual del arbol. `0,60` puede ser preferible si el equipo no puede contactar cerca de 1.300 clientes. La decision final requiere capacidad, costo de contacto, margen y perdida esperada.
+   - Umbral `0,41`: F2 0,696; recall 86,1%; precision 39,4%; 1.668 contactos.
+   - Umbral `0,50`: F2 0,689; recall 80,2%; precision 44,1%; 1.391 contactos.
+4. **Consecuencias:** usar `0,50` reduce 277 contactos, pero deja sin detectar 45 churns adicionales dentro de train.
+5. **Implicancia de negocio:** `0,41` es la decision tecnica. Si el equipo no puede absorber el volumen, `0,50` es una alternativa defendible. La seleccion comercial requiere costos y capacidad reales.
 
 ---
 
 ## Decision 20 - Exigir explicabilidad y una recomendacion accionable
 
-**Estado:** Provisoria hasta elegir el modelo
+**Estado:** Cerrada para el modelo final
 
 1. **Que decidimos:** el resultado final debe explicar que factores elevan el riesgo general y, cuando sea posible, por que un cliente fue priorizado.
 2. **Por que:** el gerente necesita convertir la prediccion en una accion y defender por que se usa presupuesto sobre determinado segmento.
 3. **Alternativas descartadas:**
    - Entregar solamente una probabilidad sin contexto.
    - Elegir un modelo mas complejo si su mejora es marginal y no puede explicarse.
-4. **Consecuencias:** se evaluaran coeficientes, importancia de variables y, si corresponde, explicaciones como SHAP. Estas explicaciones describiran el comportamiento del modelo, no causalidad.
+4. **Consecuencias:** se generaron importancia por permutacion, SHAP global y dos explicaciones SHAP locales. Estas explicaciones describen el comportamiento del modelo, no causalidad.
 5. **Implicancia de negocio:** la alerta deberia orientar una respuesta: onboarding para baja antiguedad, recuperacion ante reclamos o una prueba de beneficios para perfiles seleccionados.
 
 ---
@@ -342,37 +343,70 @@ Estados utilizados:
    - `CashbackPerOrder` representa la intensidad de beneficios recibidos por transaccion.
    - `CouponsPerOrder` aproxima cuanto depende el cliente de incentivos para comprar.
 4. **Implementacion en modelos:** se creo una unica funcion reproducible para generar variables y otra para construir los pipelines. Las variables derivadas numericas pasan por la misma imputacion KNN y, en la logistica, por el mismo escalado que el resto. La comparacion usa los mismos cinco folds y mantiene test cerrado.
-5. **Evidencia:** F2 subio de 0,704 a 0,724 en la logistica y de 0,718 a 0,730 en el arbol. `OrdersPerTenure` quedo tercera en importancia del arbol, con 8,6% de la reduccion relativa de impureza. `CashbackPerOrder` y `CouponsPerOrder` no mostraron importancia individual relevante en ese arbol.
+5. **Evidencia inicial:** antes del control de duplicados, F2 subio de 0,704 a 0,724 en la logistica y de 0,718 a 0,730 en el arbol. Esos valores se conservan como evidencia historica, no como metricas finales. En el cierre agrupado, `OrdersPerTenure` sigue apareciendo entre las variables relevantes.
 6. **Trade-off observado:** en el arbol, recall subio de 80,5% a 83,8%, pero precision bajo de 50,3% a 48,4% y PR-AUC de 0,647 a 0,641. La mejora de F2 responde a la prioridad acordada de detectar mas churn, no a una mejora uniforme de todas las metricas.
 7. **Alternativas descartadas:** no se conservaron banderas de cliente nuevo ni interacciones adicionales porque no mejoraron consistentemente la comparacion y agregaban reglas arbitrarias. Tampoco se generaron muchas combinaciones automaticas, para preservar explicabilidad y reducir riesgo de sobreajuste.
 8. **Implicancia de negocio:** la frecuencia relativa de compra aporta una senal accionable para distinguir clientes activos de clientes con vinculo debil. Las razones de cashback y cupones se mantienen por su logica comercial y por la mejora conjunta validada, pero no deben presentarse como causas individuales del churn.
 
 ---
 
-## Pendientes obligatorios antes de cerrar la entrega de modelado
+## Decision 22 - Evitar leakage por perfiles duplicados
 
-1. Confirmar la temporalidad de `Complain` y `DaySinceLastOrder`.
-2. Entrenar y comparar Random Forest como modelo potente.
-3. Comparar el modelo potente con los tres modelos ya evaluados mediante la misma validacion cruzada estratificada.
-4. Definir el costo aproximado de un falso positivo y un falso negativo.
-5. Estimar capacidad semanal o mensual de contacto del equipo comercial.
-6. Elegir modelo y umbral con metricas y criterio de negocio.
-7. Evaluar test una sola vez y registrar el resultado final.
-8. Traducir el modelo ganador a segmentos, acciones y limitaciones.
-9. Actualizar este documento con la decision del modelo ganador y las alternativas descartadas.
+**Estado:** Cerrada
+
+1. **Que decidimos:** mantener en el mismo grupo todas las filas con features identicas.
+2. **Por que:** se detectaron 556 filas duplicadas por variables explicativas y 193 perfiles del test aleatorio anterior tambien aparecian en train.
+3. **Alternativa descartada:** conservar el split aleatorio porque respetaba la tasa de churn.
+4. **Consecuencias:** se recalcularon todas las metricas y los resultados anteriores quedaron invalidados como cierre.
+5. **Implicancia de negocio:** evita sobreestimar la capacidad del sistema frente a clientes realmente nuevos.
+
+---
+
+## Decision 23 - Excluir variables con temporalidad no confirmada
+
+**Estado:** Cerrada de forma conservadora
+
+1. **Que decidimos:** excluir `Complain` y `DaySinceLastOrder` del modelo final.
+2. **Por que:** no existe documentacion suficiente para asegurar que ambas variables estaban disponibles antes del churn.
+3. **Evidencia:** Random Forest baja de F2 0,754 con todas las variables a 0,674 sin ambas.
+4. **Alternativa descartada:** conservarlas por su mejora predictiva sin poder defender su temporalidad.
+5. **Implicancia de negocio:** se acepta menor desempeno para garantizar que la alerta pueda producirse antes de que el cliente se vaya.
+
+---
+
+## Decision 24 - Congelar la evaluacion final
+
+**Estado:** Cerrada
+
+1. **Resultado final:** F2 0,665; recall 83,7%; precision 36,5%; PR-AUC 0,577; ROC-AUC 0,857.
+2. **Matriz de confusion:** 154 churns detectados, 30 no detectados, 268 falsas alertas y 664 activos descartados correctamente.
+3. **Volumen:** 422 de 1.116 clientes de test reciben alerta.
+4. **Implicancia de negocio:** el sistema funciona como radar de riesgo, pero requiere una accion de contacto cuyo costo sea compatible con el nivel de falsas alertas.
+
+---
+
+## Pendientes de negocio antes de implementar
+
+1. Definir el costo aproximado de un falso positivo y un falso negativo.
+2. Estimar capacidad semanal o mensual de contacto.
+3. Confirmar si el umbral operativo debe ser `0,41` o `0,50`.
+4. Diseñar pilotos controlados para onboarding, beneficios y recuperacion de experiencia.
+5. Crear el reporte ejecutivo y preparar la defensa oral.
 
 ---
 
 ## Resumen ejecutivo de decisiones actuales
 
 - El proyecto busca priorizar clientes para retencion, no solamente predecir churn.
-- F2 sera la metrica principal porque prioriza recall sin descuidar precision y capacidad operativa.
+- F2 es la metrica principal porque prioriza recall sin descuidar precision y capacidad operativa.
 - El dataset original se conserva intacto y `CustomerID` no se utiliza como predictor.
 - No se eliminan las 1.856 filas con datos faltantes; la imputacion se ajusta exclusivamente con train.
-- El split es 80/20, estratificado y reproducible: 16,83% de churn en train y 16,87% en test.
+- El split es aproximadamente 80/20, estratificado por grupos y sin perfiles identicos compartidos.
 - `Tenure` respalda una estrategia de retencion temprana.
-- `Complain` es una senal comercial fuerte, pero no puede aprobarse para modelado sin verificar temporalidad.
-- `DaySinceLastOrder` y `SatisfactionScore` contradicen lecturas intuitivas y requieren validacion adicional.
+- `Complain` y `DaySinceLastOrder` se excluyen del modelo final por temporalidad no confirmada.
+- `SatisfactionScore` requiere una lectura no lineal y cautelosa.
 - Cashback y segmentos comerciales muestran asociaciones utiles, pero todavia no demuestran causalidad.
 - El feature engineering incorpora frecuencia de compra e intensidad de incentivos; mejora F2 en ambos modelos sin consultar test.
-- La eleccion de modelo y umbral sigue pendiente y debera combinar desempeno, explicabilidad, presupuesto y capacidad de contacto.
+- La regresion logistica es el modelo final y `0,41` el umbral F2; `0,50` queda como alternativa operativa.
+- En test se detectaron 154 de 184 churns, con 268 falsas alertas.
+- Se generaron importancia por permutacion, SHAP global y explicaciones locales.

@@ -2,7 +2,7 @@
 
 **Fecha:** 11/06/2026  
 **Alternativa elegida:** Hipotesis - modelo - decision  
-**STATUS:** EN_EJECUCION
+**STATUS:** MODELADO_COMPLETO
 
 ## Alternativas consideradas
 
@@ -38,7 +38,7 @@ Construir una solucion que permita priorizar clientes con riesgo de churn, expli
 - **Esfuerzo:** 2 horas.
 - **Dependencias:** ninguna.
 - **Agente:** ds-explorer + ds-stats + humano.
-- **Estado:** completada, excepto confirmacion externa de temporalidad.
+- **Estado:** completada. La falta de confirmacion temporal se resolvio excluyendo las variables dudosas.
 
 ## Fase 1 - Formular y validar cinco hipotesis
 
@@ -62,17 +62,17 @@ Construir una solucion que permita priorizar clientes con riesgo de churn, expli
 
 ## Punto de reevaluacion 1
 
-Antes de modelar, confirmar temporalidad de `Complain` y `DaySinceLastOrder`. Si no puede confirmarse, entrenar escenarios con y sin esas variables y declarar la limitacion.
+Resuelto de forma conservadora: se compararon escenarios y el modelo final excluye `Complain` y `DaySinceLastOrder` por falta de confirmacion temporal.
 
 ## Fase 3 - Entrenar baseline y arbol obligatorio
 
 - **Objetivo:** establecer un piso y un modelo interpretable.
 - **Entregable:** DummyClassifier, baseline interpretable y DecisionTreeClassifier dentro de pipelines.
-- **Criterio de aceptacion:** existen resultados de StratifiedKFold k=5 para F2, recall, precision y PR-AUC.
+- **Criterio de aceptacion:** existen resultados de `StratifiedGroupKFold` k=5 para F2, recall, precision y PR-AUC.
 - **Esfuerzo:** 4 horas.
 - **Dependencias:** Fase 2 y reevaluacion 1.
 - **Agente:** ds-model.
-- **Estado:** completada. Dummy, regresion logistica y arbol fueron comparados con 5 folds; test permanece cerrado.
+- **Estado:** completada. Dummy, regresion logistica y arbol fueron comparados con 5 folds agrupados; test permanecio fuera de la seleccion.
 
 ## Fase 4 - Evaluar un modelo potente
 
@@ -82,7 +82,7 @@ Antes de modelar, confirmar temporalidad de `Complain` y `DaySinceLastOrder`. Si
 - **Esfuerzo:** 4 horas.
 - **Dependencias:** Fase 3.
 - **Agente:** ds-model.
-- **Estado:** pendiente.
+- **Estado:** completada. Random Forest fue comparado con los mismos folds agrupados.
 
 ## Fase 5 - Definir modelo y umbral de negocio
 
@@ -92,7 +92,7 @@ Antes de modelar, confirmar temporalidad de `Complain` y `DaySinceLastOrder`. Si
 - **Esfuerzo:** 3 horas.
 - **Dependencias:** Fase 4 e informacion del negocio.
 - **Agente:** ds-model + humano.
-- **Estado:** analisis tecnico completado con predicciones fuera de fold. Decision comercial pendiente de capacidad y costos.
+- **Estado:** completada tecnicamente. Umbral F2 `0,41`; alternativa operativa `0,50`. La validacion comercial sigue dependiendo de capacidad y costos.
 
 ## Punto de reevaluacion 2
 
@@ -106,7 +106,7 @@ Si el modelo complejo mejora poco, elegir el mas simple. Si el recall alto produ
 - **Esfuerzo:** 4 horas.
 - **Dependencias:** Fase 5.
 - **Agente:** ds-model + ds-report.
-- **Estado:** pendiente.
+- **Estado:** completada. Test se evaluo una vez y se generaron importancia por permutacion, SHAP global y SHAP local.
 
 ## Fase 7 - Comunicar al gerente
 
@@ -116,7 +116,7 @@ Si el modelo complejo mejora poco, elegir el mas simple. Si el recall alto produ
 - **Esfuerzo:** 1 dia.
 - **Dependencias:** Fase 6.
 - **Agente:** ds-report + humano.
-- **Estado:** pendiente.
+- **Estado:** pendiente; es la proxima fase.
 
 ---
 
@@ -129,7 +129,7 @@ Si el modelo complejo mejora poco, elegir el mas simple. Si el recall alto produ
 
 ## Handoff
 
-- **Proxima fase:** Fase 3.
-- **Agente sugerido:** ds-model.
-- **Dependencia previa:** resolver o documentar el riesgo temporal.
+- **Proxima fase:** Fase 7, reporte ejecutivo y defensa oral.
+- **Dependencia previa:** definir capacidad de contacto y validar el umbral comercial.
+- **Resultados:** `reports/modeling_results.md`.
 - **Archivo de decisiones:** `reports/decisions.md`.
