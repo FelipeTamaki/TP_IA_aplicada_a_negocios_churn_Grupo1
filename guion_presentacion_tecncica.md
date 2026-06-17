@@ -3,7 +3,7 @@
 ## Enfoque
 
 - Duracion estimada: 12-15 minutos.
-- Cantidad sugerida: 14 diapositivas.
+- Cantidad sugerida: 15 diapositivas.
 - Audiencia: docente o evaluador interesado en metodologia, reproducibilidad y resultados.
 - Evitar recomendaciones comerciales extensas: corresponden a la presentacion de negocios.
 - Mostrar decisiones tecnicas, comparaciones y controles contra leakage.
@@ -156,6 +156,9 @@ Mostrar unicamente hallazgos que influyeron en decisiones tecnicas:
 
 - `reports/figures/h1_tenure.png`
 - `reports/figures/h2_complain.png`
+- `reports/figures/h3_days_since_last_order.png`
+- `reports/figures/h4_cashback.png`
+- `reports/figures/h5_segments.png`
 
 ### Mensaje tecnico
 
@@ -304,6 +307,10 @@ min_samples_split = 4
 class_weight = {0: 1, 1: 5}
 ```
 
+### Metodo de ajuste
+
+Los hiperparametros de Random Forest se obtuvieron mediante `RandomizedSearchCV` sobre los mismos folds agrupados, optimizando F2. Esto explica valores no redondos como `n_estimators = 476`.
+
 ### Mensaje tecnico
 
 El Dummy establece el piso; la regresion aporta linealidad e interpretabilidad; el arbol captura no linealidad; Random Forest reduce varianza mediante ensamble.
@@ -356,6 +363,8 @@ PR-AUC es especialmente informativa debido al 16,8% de positivos; ROC-AUC se rep
 ## Diapositiva 11 - Sensibilidad temporal
 
 ### Contenido
+
+La sensibilidad se midio sobre Random Forest por ser el modelo mas reactivo a estas dos variables; la decision de exclusion se aplica a todos los modelos, incluido el final.
 
 Comparacion de Random Forest:
 
@@ -478,7 +487,7 @@ Variables destacadas:
 
 - `reports/figures/final_feature_importance.png`
 - `reports/figures/final_shap_global.png`
-- Opcional: `reports/figures/final_shap_local_high_risk.png`
+- Opcional: `reports/figures/final_shap_local_high_risk.png` y `reports/figures/final_shap_local_low_risk.png` para contrastar un cliente de alto riesgo con uno de bajo riesgo.
 
 ### Limitaciones tecnicas
 
@@ -495,12 +504,34 @@ El modelo final es reproducible y conservador, pero su desempeño debe monitorea
 
 ---
 
+## Diapositiva 15 - Conclusion
+
+### Decisiones tecnicas clave
+
+1. Split estratificado por grupos para neutralizar los 556 perfiles duplicados y evitar fuga entre train y test.
+2. Preprocesamiento e imputacion dentro de cada fold, nunca sobre el conjunto completo.
+3. Exclusion conservadora de `Complain` y `DaySinceLastOrder` por temporalidad no garantizada.
+4. Seleccion de modelo y umbral definida antes de observar test, priorizando F2 y recall.
+
+### Resultado final
+
+Regresion logistica balanceada con umbral `0,41`: en test detecta el 83,7% de los churns (recall) con F2 de 0,665, manteniendo el desempeño visto en validacion.
+
+### Mensaje de cierre
+
+El pipeline es reproducible y honesto respecto de sus limitaciones; prioriza no perder clientes en riesgo y deja la calibracion economica para la presentacion de negocios.
+
+---
+
 ## Archivos visuales para utilizar
 
 | Archivo | Diapositiva |
 |---|---:|
 | `reports/figures/h1_tenure.png` | 5 |
 | `reports/figures/h2_complain.png` | 5 |
+| `reports/figures/h3_days_since_last_order.png` | 5 |
+| `reports/figures/h4_cashback.png` | 5 |
+| `reports/figures/h5_segments.png` | 5 |
 | `reports/figures/temporal_sensitivity_f2.png` | 11 |
 | `reports/figures/final_model_comparison_cv.png` | 12 |
 | `reports/figures/final_test_roc_pr.png` | 13 |
@@ -508,6 +539,7 @@ El modelo final es reproducible y conservador, pero su desempeño debe monitorea
 | `reports/figures/final_feature_importance.png` | 14 |
 | `reports/figures/final_shap_global.png` | 14 |
 | `reports/figures/final_shap_local_high_risk.png` | 14, opcional |
+| `reports/figures/final_shap_local_low_risk.png` | 14, opcional |
 
 ## Contenido reservado para la presentacion de negocios
 

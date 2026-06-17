@@ -38,6 +38,13 @@ RESULT_PATH = Path("reports/final_modeling_results.json")
 FIGURE_DIR = Path("reports/figures")
 SUSPICIOUS_FEATURES = ["Complain", "DaySinceLastOrder"]
 ENGINEERED_FEATURES = ["OrdersPerTenure", "CashbackPerOrder", "CouponsPerOrder"]
+
+# Paleta alineada a la presentacion tecnica (deck)
+DECK_TEAL = "#0E7C86"
+DECK_ORANGE = "#E8833A"
+DECK_SLATE = "#6A7A82"
+DECK_TEXT = "#1F2D34"
+DECK_GRID = "#DCE6E9"
 RF_PARAMS = {
     "n_estimators": 476,
     "max_depth": 16,
@@ -212,38 +219,51 @@ def original_feature_name(transformed_name, original_columns):
 def save_model_comparison_plot(comparison):
     plot_data = comparison.loc[comparison["model"] != "Dummy"].copy()
     x = np.arange(len(plot_data))
-    width = 0.22
-    fig, ax = plt.subplots(figsize=(10, 5.5))
-    for offset, metric, label in [
-        (-width, "f2", "F2"),
-        (0, "recall", "Recall"),
-        (width, "precision", "Precision"),
+    width = 0.26
+    fig, ax = plt.subplots(figsize=(8.4, 5.6))
+    for offset, metric, label, color in [
+        (-width, "f2", "F2", DECK_TEAL),
+        (0, "recall", "Recall", DECK_ORANGE),
+        (width, "precision", "Precision", DECK_SLATE),
     ]:
-        ax.bar(x + offset, plot_data[metric], width, label=label)
+        bars = ax.bar(x + offset, plot_data[metric], width, label=label, color=color)
+        ax.bar_label(bars, fmt="%.2f", padding=2, fontsize=10, color=DECK_TEXT)
     ax.set_xticks(x)
-    ax.set_xticklabels(plot_data["model"])
-    ax.set_ylim(0, 1)
+    ax.set_xticklabels(plot_data["model"], fontsize=12)
+    ax.set_ylim(0, 1.05)
     ax.set_ylabel("Metrica fuera de fold")
-    ax.set_title("Comparacion final de modelos sin variables temporalmente dudosas")
-    ax.legend()
-    ax.grid(axis="y", alpha=0.25)
-    fig.tight_layout()
-    fig.savefig(FIGURE_DIR / "final_model_comparison_cv.png", dpi=180)
+    ax.set_title("Comparacion de modelos (OOF, umbral 0,50)", fontsize=14, fontweight="bold", pad=10)
+    ax.legend(frameon=False, ncol=3, loc="upper center", bbox_to_anchor=(0.5, -0.10))
+    ax.grid(axis="y", color=DECK_GRID, alpha=0.9)
+    ax.set_axisbelow(True)
+    for spine in ("top", "right"):
+        ax.spines[spine].set_visible(False)
+    fig.savefig(FIGURE_DIR / "final_model_comparison_cv.png", dpi=200, bbox_inches="tight", pad_inches=0.12)
     plt.close(fig)
 
 
 def save_temporal_plot(sensitivity):
-    fig, ax = plt.subplots(figsize=(10, 5.5))
+    label_map = {
+        "Sin Complain": "Sin\nComplain",
+        "Sin DaySinceLastOrder": "Sin\nDaySinceLastOrder",
+        "Conservador: sin ambas": "Sin ambas\n(final)",
+    }
+    labels = [label_map.get(s, s) for s in sensitivity["scenario"]]
+    colors = [DECK_TEAL] * (len(sensitivity) - 1) + [DECK_ORANGE]
+    fig, ax = plt.subplots(figsize=(8.4, 5.6))
     x = np.arange(len(sensitivity))
-    ax.bar(x, sensitivity["f2"], color="#4472C4")
+    bars = ax.bar(x, sensitivity["f2"], width=0.62, color=colors)
+    ax.bar_label(bars, fmt="%.3f", padding=3, fontsize=11, color=DECK_TEXT, fontweight="bold")
     ax.set_xticks(x)
-    ax.set_xticklabels(sensitivity["scenario"], rotation=15, ha="right")
-    ax.set_ylim(0, 1)
+    ax.set_xticklabels(labels, fontsize=12)
+    ax.set_ylim(0, 0.85)
     ax.set_ylabel("F2 fuera de fold")
-    ax.set_title("Sensibilidad de Random Forest a variables temporales")
-    ax.grid(axis="y", alpha=0.25)
-    fig.tight_layout()
-    fig.savefig(FIGURE_DIR / "temporal_sensitivity_f2.png", dpi=180)
+    ax.set_title("Sensibilidad de Random Forest a variables temporales", fontsize=14, fontweight="bold", pad=10)
+    ax.grid(axis="y", color=DECK_GRID, alpha=0.9)
+    ax.set_axisbelow(True)
+    for spine in ("top", "right"):
+        ax.spines[spine].set_visible(False)
+    fig.savefig(FIGURE_DIR / "temporal_sensitivity_f2.png", dpi=200, bbox_inches="tight", pad_inches=0.12)
     plt.close(fig)
 
 
