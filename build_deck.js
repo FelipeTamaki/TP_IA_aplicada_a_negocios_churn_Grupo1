@@ -47,7 +47,7 @@ function header(slide, num, kicker, title) {
   slide.addText(kicker.toUpperCase(), { x: M + 0.8, y: 0.5, w: 10, h: 0.28, fontFace: HF, fontSize: 11.5, bold: true, color: TEAL, charSpacing: 2, margin: 0, valign: "middle" });
   slide.addText(title, { x: M + 0.8, y: 0.76, w: W - M * 2 - 0.8, h: 0.62, fontFace: HF, fontSize: 27, bold: true, color: TEXT, margin: 0, valign: "middle" });
   slide.addText("Pipeline de clasificacion de churn  ·  Grupo 1", { x: M, y: H - 0.42, w: 8, h: 0.3, fontFace: BF, fontSize: 9, color: MUTED, margin: 0 });
-  slide.addText(`${num} / 15`, { x: W - M - 1.2, y: H - 0.42, w: 1.2, h: 0.3, fontFace: BF, fontSize: 9, color: MUTED, align: "right", margin: 0 });
+  slide.addText(`${num} / 12`, { x: W - M - 1.2, y: H - 0.42, w: 1.2, h: 0.3, fontFace: BF, fontSize: 9, color: MUTED, align: "right", margin: 0 });
 }
 
 function card(slide, x, y, w, h, fill) {
@@ -55,10 +55,7 @@ function card(slide, x, y, w, h, fill) {
 }
 
 function msg(slide, text, y) {
-  const yy = y || (H - 1.15);
-  slide.addShape(pres.shapes.RECTANGLE, { x: M, y: yy, w: 0.09, h: 0.62, fill: { color: ACCENT } });
-  slide.addText([{ text: "Mensaje tecnico   ", options: { bold: true, color: TEAL } }, { text, options: { color: TEXT } }],
-    { x: M + 0.25, y: yy, w: W - M * 2 - 0.25, h: 0.62, fontFace: BF, fontSize: 12.5, valign: "middle", margin: 0 });
+  // Intencionalmente vacio: los mensajes tecnicos pasan al guion oral.
 }
 
 // table style helper
@@ -93,7 +90,7 @@ function trow(cells, opts) { return cells.map((t, i) => ({ text: String(t), opti
 // SLIDE 1 — ARQUITECTURA
 // =====================================================================
 {
-  const s = pres.addSlide();
+  const s = { addShape(){}, addText(){}, addTable(){}, addImage(){}, background: null };
   header(s, 1, "Arquitectura del experimento", "Flujo completo del pipeline");
   const steps = [
     "Dataset raw", "Auditoria de calidad y duplicados", "Split estratificado por grupos",
@@ -122,7 +119,7 @@ function trow(cells, opts) { return cells.map((t, i) => ({ text: String(t), opti
 // =====================================================================
 {
   const s = pres.addSlide();
-  header(s, 2, "Dataset y variable objetivo", "5.630 clientes, target Churn binario");
+  header(s, 1, "Dataset y variable objetivo", "5.630 clientes, target Churn binario");
   // stat callouts
   const stats = [["5.630", "observaciones"], ["20", "columnas (18 predictoras)"], ["16,8%", "clientes con churn"]];
   let sx = M;
@@ -153,7 +150,7 @@ function trow(cells, opts) { return cells.map((t, i) => ({ text: String(t), opti
 // =====================================================================
 {
   const s = pres.addSlide();
-  header(s, 3, "Auditoria de calidad", "Nulos, duplicados y categorias equivalentes");
+  header(s, 2, "Auditoria de calidad", "Nulos, duplicados y categorias equivalentes");
   const stats = [["1.856", "filas con algun nulo", "exactamente 1 faltante c/u"], ["556", "filas con features identicas", "perfiles duplicados"], ["0", "duplicados de CustomerID", "identificador integro"]];
   let sx = M;
   stats.forEach(([n, l, sub]) => {
@@ -183,7 +180,7 @@ function trow(cells, opts) { return cells.map((t, i) => ({ text: String(t), opti
 // =====================================================================
 {
   const s = pres.addSlide();
-  header(s, 4, "Estrategia de imputacion", "Metodo por variable, siempre dentro del fold");
+  header(s, 3, "Estrategia de imputacion", "Metodo por variable, siempre dentro del fold");
   s.addTable([
     thead(["Variables", "Metodo"]),
     trow(["WarehouseToHome, CouponUsed", "Mediana"]),
@@ -211,7 +208,7 @@ function trow(cells, opts) { return cells.map((t, i) => ({ text: String(t), opti
 // =====================================================================
 {
   const s = pres.addSlide();
-  header(s, 5, "Analisis exploratorio para modelar", "Hallazgos que influyeron en decisiones tecnicas");
+  header(s, 4, "Analisis exploratorio para modelar", "Hallazgos que influyeron en decisiones tecnicas");
   // left findings
   const finds = [
     ["Tenure", "mayor diferencia entre clases"],
@@ -220,17 +217,17 @@ function trow(cells, opts) { return cells.map((t, i) => ({ text: String(t), opti
     ["CashbackAmount", "asociacion relevante"],
     ["Categoricas", "diferencias entre segmentos"],
   ];
-  card(s, M, 1.95, 5.4, 3.5);
+  card(s, M, 1.78, 4.25, 3.85);
   finds.forEach((f, i) => {
-    const y = 2.1 + i * 0.64;
-    s.addShape(pres.shapes.OVAL, { x: M + 0.22, y: y + 0.06, w: 0.16, h: 0.16, fill: { color: i < 3 ? ACCENT : TEAL } });
-    s.addText([{ text: f[0] + "  ", options: { bold: true, color: TEXT } }, { text: f[1], options: { color: MUTED, fontSize: 10.5 } }], { x: M + 0.5, y, w: 4.8, h: 0.55, valign: "middle", fontFace: BF, fontSize: 12.5, margin: 0 });
+    const y = 2.08 + i * 0.58;
+    s.addShape(pres.shapes.OVAL, { x: M + 0.3, y: y + 0.08, w: 0.11, h: 0.11, fill: { color: i < 3 ? ACCENT : TEAL } });
+    s.addText([{ text: f[0] + "  ", options: { bold: true, color: TEXT } }, { text: f[1], options: { color: MUTED, fontSize: 7.3 } }], { x: M + 0.58, y, w: 3.65, h: 0.22, valign: "middle", fontFace: BF, fontSize: 10.2, margin: 0 });
   });
   // methods chips
   s.addText("Metodos: Mann-Whitney U · Chi-cuadrado · Rank-biserial · Cramer's V", { x: M, y: 5.55, w: 5.5, h: 0.4, fontFace: BF, fontSize: 10.5, italic: true, color: TEAL, margin: 0 });
   // right figures
-  s.addImage({ path: FIG("h1_tenure.png"), x: 6.3, y: 1.95, w: 6.4, sizing: { type: "contain", w: 6.4, h: 1.65 } });
-  s.addImage({ path: FIG("h2_complain.png"), x: 6.3, y: 3.75, w: 6.4, sizing: { type: "contain", w: 6.4, h: 1.65 } });
+  fitImage(s, "h1_tenure.png", 5.1, 1.65, 7.65, 2.22);
+  fitImage(s, "h2_complain.png", 5.1, 4.12, 7.65, 2.22);
   msg(s, "El EDA sirvio para formular variables y detectar riesgos metodologicos, no para seleccionar predictores por p-valor.");
 }
 
@@ -239,7 +236,7 @@ function trow(cells, opts) { return cells.map((t, i) => ({ text: String(t), opti
 // =====================================================================
 {
   const s = pres.addSlide();
-  header(s, 6, "Split agrupado", "StratifiedGroupKFold sin perfiles compartidos");
+  header(s, 5, "Split agrupado", "StratifiedGroupKFold sin perfiles compartidos");
   card(s, M, 1.95, 6.0, 1.9, DARK);
   s.addText("StratifiedGroupKFold(\n    n_splits=5,\n    shuffle=True,\n    random_state=42\n)", { x: M + 0.3, y: 2.05, w: 5.5, h: 1.7, fontFace: "Consolas", fontSize: 14, color: "9FE4EA", valign: "middle", margin: 0 });
   card(s, M, 4.05, 6.0, 1.45);
@@ -267,7 +264,7 @@ function trow(cells, opts) { return cells.map((t, i) => ({ text: String(t), opti
 // =====================================================================
 {
   const s = pres.addSlide();
-  header(s, 7, "Feature engineering", "Tres variables de intensidad, deterministas");
+  header(s, 6, "Feature engineering", "Tres variables de intensidad, deterministas");
   const feats = [
     ["OrdersPerTenure", "OrderCount / (Tenure + 1)"],
     ["CashbackPerOrder", "CashbackAmount / (OrderCount + 1)"],
@@ -297,7 +294,7 @@ function trow(cells, opts) { return cells.map((t, i) => ({ text: String(t), opti
 // SLIDE 8 — PIPELINE PREPROCESAMIENTO
 // =====================================================================
 {
-  const s = pres.addSlide();
+  const s = { addShape(){}, addText(){}, addTable(){}, addImage(){}, background: null };
   header(s, 8, "Pipeline de preprocesamiento", "Tres ramas integradas con ColumnTransformer");
   const branches = [
     ["Numericas KNN", ["KNNImputer", "StandardScaler (solo regresion)"]],
@@ -327,7 +324,7 @@ function trow(cells, opts) { return cells.map((t, i) => ({ text: String(t), opti
 // =====================================================================
 {
   const s = pres.addSlide();
-  header(s, 9, "Modelos e hiperparametros", "Del piso Dummy al ensamble Random Forest");
+  header(s, 7, "Modelos e hiperparametros", "Del piso Dummy al ensamble Random Forest");
   const models = [
     ["Dummy", "strategy = most_frequent", TEAL],
     ["Regresion logistica", "class_weight = balanced\nmax_iter = 2000\nrandom_state = 42", TEAL],
@@ -352,7 +349,7 @@ function trow(cells, opts) { return cells.map((t, i) => ({ text: String(t), opti
 // =====================================================================
 {
   const s = pres.addSlide();
-  header(s, 10, "Metricas de evaluacion", "F2 prioriza recall sobre precision");
+  header(s, 8, "Metricas de evaluacion", "F2 prioriza recall sobre precision");
   const f = [["Recall", "TP / (TP + FN)"], ["Precision", "TP / (TP + FP)"], ["F-beta (β=2)", "(1+β²)·P·R / (β²·P + R)"]];
   f.forEach((it, i) => {
     const y = 1.95 + i * 0.92;
@@ -379,7 +376,7 @@ function trow(cells, opts) { return cells.map((t, i) => ({ text: String(t), opti
 // =====================================================================
 {
   const s = pres.addSlide();
-  header(s, 11, "Sensibilidad temporal", "Random Forest con y sin variables de riesgo");
+  header(s, 9, "Sensibilidad temporal", "Random Forest con y sin variables de riesgo");
   s.addTable([
     thead(["Escenario", "F2", "Recall", "Precision", "PR-AUC", "ROC-AUC"]),
     trow(["Completo", "0,754", "0,753", "0,760", "0,831", "0,957"]),
@@ -401,7 +398,7 @@ function trow(cells, opts) { return cells.map((t, i) => ({ text: String(t), opti
 // =====================================================================
 {
   const s = pres.addSlide();
-  header(s, 12, "Comparacion de modelos", "Fuera de fold, umbral 0,50, escenario conservador");
+  header(s, 10, "Comparacion de modelos", "Fuera de fold, umbral 0,50, escenario conservador");
   s.addTable([
     thead(["Modelo", "F2", "Recall", "Precision", "PR-AUC", "ROC-AUC"]),
     trow(["Dummy", "0,000", "0,000", "0,000", "0,169", "0,500"], { 0: { color: MUTED } }),
@@ -425,7 +422,7 @@ function trow(cells, opts) { return cells.map((t, i) => ({ text: String(t), opti
 // =====================================================================
 {
   const s = pres.addSlide();
-  header(s, 13, "Ajuste de umbral y test final", "Umbral elegido OOF, congelado antes de test");
+  header(s, 11, "Ajuste de umbral y test final", "Umbral elegido OOF, congelado antes de test");
   // threshold table
   s.addText("Ajuste fuera de fold", { x: M, y: 1.85, w: 5, h: 0.3, fontFace: HF, fontSize: 13, bold: true, color: TEAL, margin: 0 });
   s.addTable([
@@ -458,7 +455,7 @@ function trow(cells, opts) { return cells.map((t, i) => ({ text: String(t), opti
 // =====================================================================
 {
   const s = pres.addSlide();
-  header(s, 14, "Interpretabilidad y limitaciones", "Permutacion y SHAP coinciden en los drivers");
+  header(s, 12, "Interpretabilidad y limitaciones", "Drivers consistentes, sin lectura causal");
   s.addImage({ path: FIG("final_feature_importance.png"), x: M, y: 1.9, w: 4.0, sizing: { type: "contain", w: 4.0, h: 2.5 } });
   s.addImage({ path: FIG("final_shap_global.png"), x: 4.8, y: 1.9, w: 4.0, sizing: { type: "contain", w: 4.0, h: 2.5 } });
   // top vars + limitations
@@ -478,6 +475,26 @@ function trow(cells, opts) { return cells.map((t, i) => ({ text: String(t), opti
   lims.forEach((l, i) => {
     const col = i % 3, row = Math.floor(i / 3);
     s.addText(l, { x: M + 0.3 + col * 4.0, y: 4.95 + row * 0.32, w: 3.9, h: 0.3, fontFace: BF, fontSize: 11, color: TEXT, bullet: { code: "2022", indent: 12 }, margin: 0 });
+  });
+  s.addShape(pres.shapes.RECTANGLE, { x: M - 0.02, y: 1.55, w: 12.17, h: 5.2, fill: { color: LIGHT }, line: { color: LIGHT } });
+  fitImage(s, "final_interpretability_combo.png", M, 1.65, 8.25, 4.85);
+
+  card(s, 9.15, 1.75, 3.58, 2.05, CARD);
+  s.addText("Lectura tecnica", { x: 9.38, y: 1.92, w: 3.1, h: 0.3, fontFace: HF, fontSize: 13.5, bold: true, color: TEAL, margin: 0 });
+  const reads = [
+    "Tenure aparece en ambos metodos.",
+    "Cashback y categoria preferida sostienen poder explicativo.",
+    "OrdersPerTenure valida el feature engineering.",
+  ];
+  reads.forEach((t, i) => {
+    s.addText(t, { x: 9.43, y: 2.35 + i * 0.43, w: 3.0, h: 0.34, fontFace: BF, fontSize: 11.2, color: TEXT, bullet: { code: "2022", indent: 12 }, margin: 0 });
+  });
+
+  card(s, 9.15, 4.05, 3.58, 2.1, CARD);
+  s.addText("Limites", { x: 9.38, y: 4.22, w: 3.1, h: 0.3, fontFace: HF, fontSize: 13.5, bold: true, color: ACCENT, margin: 0 });
+  const cleanLims = ["Dataset observacional", "Temporalidad incompleta", "Precision final 36,5%", "Importancia no implica causalidad"];
+  cleanLims.forEach((l, i) => {
+    s.addText(l, { x: 9.43, y: 4.65 + i * 0.34, w: 3.0, h: 0.3, fontFace: BF, fontSize: 10.8, color: TEXT, bullet: { code: "2022", indent: 12 }, margin: 0 });
   });
   msg(s, "El modelo final es reproducible y conservador, pero debe monitorearse y recalibrarse en produccion.", H - 1.0);
 }
