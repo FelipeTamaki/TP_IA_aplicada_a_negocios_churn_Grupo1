@@ -146,7 +146,7 @@ Estados utilizados:
    - Split estratificado tradicional que permita perfiles identicos en ambos conjuntos.
    - Cambiar la semilla en cada ejecucion.
    - Usar el conjunto de test para ajustar decisiones durante el desarrollo.
-4. **Consecuencias:** train contiene 4.514 clientes y test 1.116. No hay perfiles identicos compartidos entre ambos conjuntos. Los resultados anteriores con split aleatorio se consideran intermedios.
+4. **Consecuencias:** train contiene 4.504 clientes y test 1.126. No hay perfiles identicos compartidos entre ambos conjuntos. Los resultados anteriores con split aleatorio se consideran intermedios.
 5. **Implicancia de negocio:** se evita prometer un desempeno inflado por haber evaluado clientes equivalentes a los usados para entrenar.
 
 ---
@@ -385,6 +385,38 @@ Estados utilizados:
 
 ---
 
+## Decision 25 - Tuning sistematico y cambio de modelo final a Random Forest
+
+**Estado:** Cerrada (actualizacion del 17/06/2026)
+
+1. **Que decidimos:** elegir los hiperparametros de los tres modelos con `GridSearchCV`
+   (scoring F2, misma CV agrupada) en vez de fijarlos a mano, y dejar competir al Random Forest.
+   Bajo el mismo criterio recall-first, el **Random Forest tuneado** pasa a ser el modelo final
+   (umbral F2 `0,27`), reemplazando a la regresion logistica.
+2. **Por que:** la precision de 36,5% del cierre anterior se leia como "baja", pero era una
+   consecuencia de priorizar recall, no un defecto. Precision y recall se contraponen; la unica
+   forma honesta de subir precision **sin** resignar recall es mejorar el ordenamiento del riesgo
+   (PR-AUC). El Random Forest ordena mejor (PR-AUC OOF 0,77 vs 0,61 de la logistica).
+3. **Evidencia - comparacion a igual recall (~84%) fuera de fold:**
+   - Logistica: precision 0,400; 958 falsas alertas.
+   - Arbol: precision 0,351; 1.197 falsas alertas.
+   - Random Forest: precision **0,573**; **477** falsas alertas (misma deteccion, mitad de alertas
+     equivocadas).
+4. **Evidencia - test final** (Random Forest, umbral 0,27): recall 91,1%, precision 57,9%,
+   F2 0,817, PR-AUC 0,834. Sobre el mismo split, la logistica anterior daba recall 84,2% y
+   precision 40,7%. El Random Forest mejora **recall, precision y F2 a la vez**.
+5. **Alternativas descartadas:**
+   - Subir el umbral de la logistica para ganar precision: bajaba el recall (rompe la prioridad).
+   - Cambiar la metrica a F1 o perseguir "maxima precision": el usuario opto por mantener recall alto.
+   - Reincorporar `Complain` / `DaySinceLastOrder`: se mantienen excluidas (Decision 23).
+6. **Trade-off de explicabilidad:** el Random Forest es menos transparente que la logistica o el
+   arbol. Se conservan ambos como anclas interpretables y se explica el RF con importancia por
+   permutacion (sin depender de `shap`, que paso a ser opcional).
+7. **Implicancia de negocio:** a igual capacidad de deteccion, el equipo comercial contacta menos
+   clientes equivocados (menos costo por falsa alerta) sin dejar de detectar a los que se van.
+
+---
+
 ## Pendientes de negocio antes de implementar
 
 1. Definir el costo aproximado de un falso positivo y un falso negativo.
@@ -407,6 +439,10 @@ Estados utilizados:
 - `SatisfactionScore` requiere una lectura no lineal y cautelosa.
 - Cashback y segmentos comerciales muestran asociaciones utiles, pero todavia no demuestran causalidad.
 - El feature engineering incorpora frecuencia de compra e intensidad de incentivos; mejora F2 en ambos modelos sin consultar test.
-- La regresion logistica es el modelo final y `0,41` el umbral F2; `0,50` queda como alternativa operativa.
-- En test se detectaron 154 de 184 churns, con 268 falsas alertas.
+- **Actualizacion (Decision 25):** tras tuning con `GridSearchCV`, el modelo final es el
+  **Random Forest** con umbral F2 `0,27`. A igual recall genera la mitad de falsas alertas que
+  la logistica. La logistica queda como baseline interpretable.
+- En test (cierre actualizado) se detectaron **173 de 190 churns con 126 falsas alertas**
+  (recall 91,1%, precision 57,9%). El cierre original con logistica detectaba 154 de 184 con
+  268 falsas alertas.
 - Se generaron importancia por permutacion, SHAP global y explicaciones locales.

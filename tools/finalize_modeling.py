@@ -5,7 +5,14 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import shap
+
+try:
+    import shap
+
+    SHAP_AVAILABLE = True
+except ImportError:  # shap es opcional: si no esta instalado se omiten sus figuras
+    shap = None
+    SHAP_AVAILABLE = False
 from sklearn.compose import ColumnTransformer
 from sklearn.dummy import DummyClassifier
 from sklearn.ensemble import RandomForestClassifier
@@ -45,17 +52,25 @@ DECK_ORANGE = "#E8833A"
 DECK_SLATE = "#6A7A82"
 DECK_TEXT = "#1F2D34"
 DECK_GRID = "#DCE6E9"
+# Parametros elegidos por GridSearchCV (scoring=F2, CV agrupada de 5 folds).
+# La busqueda esta documentada en Modelo.ipynb (seccion "Busqueda de
+# hiperparametros") y en tools/tune_models.py. Resultado: con estos parametros
+# el Random Forest pasa a tener el F2 mas alto en validacion, ordena mejor el
+# riesgo y, a igual recall, genera la mitad de falsas alertas que la logistica.
 RF_PARAMS = {
-    "n_estimators": 476,
-    "max_depth": 16,
+    "n_estimators": 300,
+    "max_depth": 12,
     "max_features": 0.5,
     "max_samples": 0.7,
     "min_samples_leaf": 4,
-    "min_samples_split": 4,
     "class_weight": {0: 1, 1: 5},
     "random_state": RANDOM_STATE,
     "n_jobs": 1,
 }
+
+# Hiperparametros tuneados de los modelos simples (mismo GridSearchCV).
+LOGISTIC_PARAMS = {"C": 0.1, "class_weight": "balanced", "max_iter": 2000}
+TREE_PARAMS = {"max_depth": 6, "min_samples_leaf": 20, "class_weight": "balanced"}
 
 
 def normalize_categories(data):
@@ -137,9 +152,8 @@ def build_models(data):
                 (
                     "model",
                     LogisticRegression(
-                        class_weight="balanced",
-                        max_iter=2000,
                         random_state=RANDOM_STATE,
+                        **LOGISTIC_PARAMS,
                     ),
                 ),
             ]
@@ -150,10 +164,8 @@ def build_models(data):
                 (
                     "model",
                     DecisionTreeClassifier(
-                        class_weight="balanced",
-                        max_depth=5,
-                        min_samples_leaf=20,
                         random_state=RANDOM_STATE,
+                        **TREE_PARAMS,
                     ),
                 ),
             ]
@@ -201,6 +213,24 @@ def choose_threshold(y_true, probabilities):
     )
     operational_row = operational.iloc[0] if not operational.empty else best
     return best.to_dict(), operational_row.to_dict(), table
+
+
+def precision_at_recall(y_true, probabilities, target_recall):
+    """Umbral mas alto cuyo recall OOF alcanza target_recall, con sus metricas.
+
+    Sirve para comparar modelos a IGUAL nivel de deteccion: a recall fijo, el
+    modelo que mejor ordena el riesgo entrega mayor precision (menos falsas
+    alertas), respondiendo "como subir precision sin resignar recall".
+    """
+    best = None
+    for threshold in np.round(np.arange(0.05, 0.96, 0.01), 2):
+        metrics = metrics_from_probabilities(y_true, probabilities, threshold)
+        if metrics["recall"] >= target_recall:
+            if best is None or threshold > best["threshold"]:
+                best = metrics
+    if best is None:
+        best = metrics_from_probabilities(y_true, probabilities, 0.05)
+    return best
 
 
 def clean_feature_name(name):
@@ -541,6 +571,18 @@ def main():
         comparison_rows.append(row)
     comparison = pd.DataFrame(comparison_rows)
 
+    # Comparacion a IGUAL recall (~0.84): a mismo nivel de deteccion, que modelo
+    # genera menos falsas alertas. Es la evidencia de mejora explicable.
+    iso_recall_target = 0.84
+    iso_recall_rows = []
+    for model_name, probabilities in oof_probabilities.items():
+        if model_name == "Dummy":
+            continue
+        iso = precision_at_recall(y_train, probabilities, iso_recall_target)
+        iso["model"] = model_name
+        iso_recall_rows.append(iso)
+    iso_recall = pd.DataFrame(iso_recall_rows)
+
     eligible = comparison.loc[comparison["model"] != "Dummy"].sort_values(
         ["f2", "pr_auc", "precision"], ascending=False
     )
@@ -566,12 +608,18 @@ def main():
     permutation = save_permutation_importance(
         selected_model, X_test, y_test
     )
-    shap_global, local_examples = save_shap_artifacts(
-        selected_model,
-        X_test,
-        test_probabilities,
-        test_customer_ids.reset_index(drop=True),
-    )
+    if SHAP_AVAILABLE:
+        shap_global, local_examples = save_shap_artifacts(
+            selected_model,
+            X_test,
+            test_probabilities,
+            test_customer_ids.reset_index(drop=True),
+        )
+        shap_global_records = shap_global.to_dict(orient="records")
+    else:
+        print("shap no esta instalado: se omiten las figuras SHAP.")
+        shap_global_records = []
+        local_examples = []
 
     output = {
         "protocol": {
@@ -592,6 +640,8 @@ def main():
         "selected_model": selected_model_name,
         "selected_features_dropped": conservative_drop,
         "model_comparison_oof_threshold_050": comparison.to_dict(orient="records"),
+        "iso_recall_comparison_oof": iso_recall.to_dict(orient="records"),
+        "iso_recall_target": iso_recall_target,
         "temporal_sensitivity_rf_threshold_050": sensitivity.to_dict(
             orient="records"
         ),
@@ -605,7 +655,7 @@ def main():
         "duplicate_feature_rows_detected": int(X.duplicated().sum()),
         "shared_profile_groups_train_test": 0,
         "permutation_importance": permutation.to_dict(orient="records"),
-        "shap_global": shap_global.to_dict(orient="records"),
+        "shap_global": shap_global_records,
         "shap_local_examples": local_examples,
         "rf_params": RF_PARAMS,
         "figures": [
@@ -614,10 +664,16 @@ def main():
             "reports/figures/final_test_roc_pr.png",
             "reports/figures/final_test_confusion_matrix.png",
             "reports/figures/final_feature_importance.png",
-            "reports/figures/final_shap_global.png",
-            "reports/figures/final_shap_local_high_risk.png",
-            "reports/figures/final_shap_local_low_risk.png",
-        ],
+        ]
+        + (
+            [
+                "reports/figures/final_shap_global.png",
+                "reports/figures/final_shap_local_high_risk.png",
+                "reports/figures/final_shap_local_low_risk.png",
+            ]
+            if SHAP_AVAILABLE
+            else []
+        ),
         "threshold_table_oof": threshold_table.to_dict(orient="records"),
     }
     RESULT_PATH.write_text(json.dumps(output, indent=2), encoding="utf-8")

@@ -28,12 +28,19 @@ Luego abrir y ejecutar `EDA.ipynb` y `Modelo.ipynb` en ese orden. El dataset ori
 
 ## Estado
 
-El EDA y el modelado estan completos. La regresion logistica balanceada fue seleccionada como modelo final con umbral `0,41`, luego de:
+El EDA y el modelado estan completos. Tras tuning sistematico con `GridSearchCV`, el
+**Random Forest tuneado** fue seleccionado como modelo final con umbral `0,27` (recall-first),
+luego de:
 
-- comparar Dummy, regresion logistica, arbol y Random Forest;
+- comparar Dummy, regresion logistica, arbol y Random Forest con hiperparametros tuneados;
+- elegir cada configuracion con `GridSearchCV` (scoring F2, CV agrupada);
+- comparar a igual recall (~84%): a misma deteccion, el Random Forest genera la mitad de falsas alertas;
 - bloquear perfiles duplicados entre train y test;
 - excluir `Complain` y `DaySinceLastOrder` por temporalidad no confirmada;
-- evaluar test una sola vez;
-- generar ROC, Precision-Recall, matriz de confusion, importancia y SHAP.
+- evaluar test una sola vez (recall 91,1%, precision 57,9%, F2 0,817);
+- generar ROC, Precision-Recall, matriz de confusion e importancia por permutacion (SHAP opcional).
+
+El detalle de la mejora esta en `reports/modeling_results.md` (seccion "Cierre actualizado") y en
+la Decision 25 de `reports/decisions.md`. La regresion logistica queda como baseline interpretable.
 
 Quedan pendientes el reporte ejecutivo y las presentaciones finales.

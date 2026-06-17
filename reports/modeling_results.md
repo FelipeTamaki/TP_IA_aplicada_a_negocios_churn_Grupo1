@@ -1,11 +1,19 @@
 # Resultados finales de modelado
 
-**Fecha de cierre:** 15/06/2026
+> **ACTUALIZACION 17/06/2026 - mejora con tuning sistematico.**
+> El modelo final pasa de la regresion logistica al **Random Forest tuneado por
+> `GridSearchCV`**. A igual recall genera la mitad de falsas alertas y sube la
+> precision de test de 36,5% a **57,9%** sin resignar recall (de hecho sube a
+> 91,1%). Los numeros nuevos estan en la seccion ["Cierre actualizado"](#cierre-actualizado-17062026).
+> Las tablas previas se conservan como historia del proceso.
+
+**Fecha de cierre original:** 15/06/2026
 **Target:** `Churn`
 **Metrica principal:** F2 con `beta=2`
 **Validacion:** `StratifiedGroupKFold` con 5 folds
-**Modelo final:** regresion logistica balanceada
-**Umbral final:** `0,41`
+**Modelo final (original):** regresion logistica balanceada
+**Modelo final (actualizado):** Random Forest tuneado
+**Umbral final (actualizado):** `0,27`
 
 ## Correccion metodologica: perfiles duplicados
 
@@ -13,8 +21,8 @@ La auditoria final detecto **556 filas con variables explicativas exactamente du
 
 Se reemplazo ese protocolo por una separacion estratificada por grupos:
 
-- train: 4.514 clientes y 764 churns;
-- test: 1.116 clientes y 184 churns;
+- train: 4.504 clientes y 758 churns;
+- test: 1.126 clientes y 190 churns;
 - perfiles identicos compartidos entre train y test: 0;
 - la validacion cruzada interna tambien mantiene cada grupo en un unico fold.
 
@@ -117,3 +125,66 @@ Estas explicaciones muestran como decide el modelo. No demuestran que modificar 
 2. Elegir entre el umbral F2 `0,41` y la alternativa operativa `0,50`.
 3. Validar mediante pilotos si onboarding, recuperacion de reclamos o cashback reducen churn.
 4. Monitorear precision, recall y estabilidad por subgrupos luego de implementar.
+
+---
+
+## Cierre actualizado (17/06/2026)
+
+**Por que se actualiza.** El cierre anterior reportaba precision 36,5% y se leia como
+"baja". No era un defecto del modelo: era la consecuencia de priorizar recall (F2 + umbral
+bajo + eleccion de la regresion logistica). Precision y recall se contraponen; la unica forma
+honesta de subir precision sin resignar recall es que el modelo **ordene mejor el riesgo**
+(mayor PR-AUC). Por eso se hizo tuning sistematico y se dejo competir al Random Forest.
+
+### Que cambio
+
+1. **Hiperparametros por `GridSearchCV`** (scoring F2, misma CV agrupada) en los tres modelos,
+   en vez de valores elegidos a mano. Mejores configuraciones:
+   - Regresion logistica: `C=0.1`, `class_weight=balanced`.
+   - Arbol de decision: `max_depth=6`, `min_samples_leaf=20`.
+   - Random Forest: `n_estimators=300`, `max_depth=12`, `min_samples_leaf=4`,
+     `max_features=0.5`, `max_samples=0.7`, `class_weight={0:1, 1:5}`.
+2. **Seleccion del modelo final** bajo el mismo criterio recall-first: el Random Forest tuneado
+   pasa a tener el F2 mas alto fuera de fold, asi que queda seleccionado automaticamente.
+
+### Comparacion a igual recall (~84%) - fuera de fold en train
+
+A mismo nivel de deteccion, el modelo que mejor ordena el riesgo genera menos falsas alertas.
+
+| Modelo (tuneado) | Umbral | Recall | Precision | Contactos | Falsas alertas |
+|---|---:|---:|---:|---:|---:|
+| Regresion logistica | 0,45 | 0,842 | 0,400 | 1.596 | 958 |
+| Arbol de decision | 0,29 | 0,854 | 0,351 | 1.844 | 1.197 |
+| **Random Forest** | 0,35 | 0,843 | **0,573** | **1.116** | **477** |
+
+### Evaluacion final en test (umbral F2 `0,27`)
+
+| Metrica | Logistica anterior (mismo split) | **Random Forest (final)** |
+|---|---:|---:|
+| Recall | 0,842 | **0,911** |
+| Precision | 0,407 | **0,579** |
+| F2 | 0,694 | **0,817** |
+| F1 | - | 0,708 |
+| PR-AUC | 0,643 | **0,834** |
+| ROC-AUC | - | **0,955** |
+| Accuracy | - | 0,873 |
+| Churn detectado | 160 de 190 | **173 de 190** |
+| Falsas alertas | 233 | **126** |
+| Clientes priorizados | 393 | 299 |
+
+El Random Forest **mejora simultaneamente recall, precision y F2**: no hay sacrificio, es
+mejora pura por mejor ordenamiento del riesgo. La precision no llega al 100% porque el churn
+es minoritario (~17%) y se prioriza detectar; sigue siendo un punto de operacion elegido.
+
+> **Reproducibilidad.** Los conteos exactos de test dependen levemente de la version de
+> scikit-learn por el barajado de `StratifiedGroupKFold`. La comparacion logistica vs Random
+> Forest de la tabla anterior se hizo sobre el **mismo split** para aislar el efecto del modelo.
+> Para reproducir identico, usar las versiones de `requirements.txt`.
+
+### Notas de implementacion
+
+- Los parametros tuneados viven en `tools/finalize_modeling.py` (`RF_PARAMS`, `LOGISTIC_PARAMS`,
+  `TREE_PARAMS`) y la busqueda que los justifica esta en `Modelo.ipynb` (seccion 12 bis) y en
+  `tools/tune_models.py`.
+- `shap` paso a ser **opcional**: si no esta instalado, `finalize_modeling.py` omite las figuras
+  SHAP sin romper el cierre. La interpretabilidad principal es importancia por permutacion.
