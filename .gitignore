@@ -4,3 +4,11 @@ __pycache__/
 .ipynb_checkpoints/
 .jupyter/
 .matplotlib/
+
+# PPT no reproducible / tooling node
+node_modules/
+package.json
+package-lock.json
+build_deck*.js
+make_mosaic.py
+swap_slide6.py
